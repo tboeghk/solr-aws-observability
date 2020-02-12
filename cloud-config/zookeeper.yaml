@@ -1,0 +1,44 @@
+#cloud-config
+groups:
+  - default
+
+users:
+  - default
+  - name: torsten
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGY2GZU19neGfVAVuIOKt0iIMKUDDz0H72dPROsVPFen
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - docker
+
+write_files:
+  - content: |
+        [Unit]
+        Description=Zookeeper
+        Requires=docker.service
+        After=docker.service
+
+        [Service]
+        Restart=always
+        ExecStartPre=-/usr/bin/docker stop %n
+        ExecStartPre=-/usr/bin/docker rm %n
+        ExecStartPre=/usr/bin/docker pull zookeeper:3.5
+        #ExecStart=/usr/bin/docker run --rm --name %n -p 2181:2181 -p 2888:2888 -p 3888:3888 -e ZOO_MY_ID=1 -e ZOO_SERVERS="server.1=0.0.0.0:2888:3888;2181" zookeeper:3.5
+        ExecStart=/usr/bin/docker run --rm --name %n -p 2181:2181 -p 2888:2888 -p 3888:3888 zookeeper:3.5
+
+        [Install]
+        WantedBy=local.target
+    path: /etc/systemd/system/zookeeper.service
+
+runcmd:
+  - amazon-linux-extras install epel -y
+  - systemctl daemon-reload
+  - systemctl enable docker
+  - systemctl enable zookeeper
+  - systemctl start docker
+  - systemctl start zookeeper

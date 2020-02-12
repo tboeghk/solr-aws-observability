@@ -1,0 +1,44 @@
+#cloud-config
+groups:
+  - default
+
+users:
+  - default
+  - name: torsten
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGY2GZU19neGfVAVuIOKt0iIMKUDDz0H72dPROsVPFen
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - docker
+
+write_files:
+  - content: |
+        [Unit]
+        Description=Solr
+        Requires=docker.service
+        After=docker.service
+
+        [Service]
+        Restart=always
+        ExecStartPre=-/usr/bin/docker stop %n
+        ExecStartPre=-/usr/bin/docker rm %n
+        ExecStartPre=/usr/bin/docker pull solr:8.4
+        ExecStart=/usr/bin/docker run --rm --name %n -p 8983:8983 -e ZK_HOST= solr:8.4
+
+        [Install]
+        WantedBy=local.target
+    path: /etc/systemd/system/solr.service
+
+runcmd:
+  - yum -y update
+  - amazon-linux-extras install epel -y
+  - systemctl daemon-reload
+  - systemctl enable docker
+  - systemctl start docker
+  - systemctl enable solr
+  - systemctl start solr
