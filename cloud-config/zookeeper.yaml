@@ -15,30 +15,56 @@ package_upgrade: true
 
 packages:
   - docker
+  - jq
 
 write_files:
   - content: |
-        [Unit]
-        Description=Zookeeper
-        Requires=docker.service
-        After=docker.service
+      [Unit]
+      Description=Zookeeper
+      Requires=docker.service
+      After=docker.service
 
-        [Service]
-        Restart=always
-        ExecStartPre=-/usr/bin/docker stop %n
-        ExecStartPre=-/usr/bin/docker rm %n
-        ExecStartPre=/usr/bin/docker pull zookeeper:3.5
-        #ExecStart=/usr/bin/docker run --rm --name %n -p 2181:2181 -p 2888:2888 -p 3888:3888 -e ZOO_MY_ID=1 -e ZOO_SERVERS="server.1=0.0.0.0:2888:3888;2181" zookeeper:3.5
-        ExecStart=/usr/bin/docker run --rm --name %n -p 2181:2181 -p 2888:2888 -p 3888:3888 zookeeper:3.5
+      [Service]
+      EnvironmentFile=/etc/default/zookeeper
+      Restart=always
+      ExecStartPre=-/usr/bin/docker stop %n
+      ExecStartPre=-/usr/bin/docker rm %n
+      ExecStartPre=/usr/bin/docker pull zookeeper:3.5
+      ExecStart=/usr/bin/docker run --rm --name %n \
+        -p 2181:2181 -p 2888:2888 -p 3888:3888 \
+        -e ZOO_MY_ID=${ZOO_MY_ID} \
+        -e ZOO_SERVERS=${ZOO_SERVERS} \
+        zookeeper:3.5
 
-        [Install]
-        WantedBy=local.target
+      [Install]
+      WantedBy=local.target
     path: /etc/systemd/system/zookeeper.service
+  - content: |
+      #!/bin/bash
+      ZOO_HOST_IP=$(curl -s curl http://169.254.169.254/latest/meta-data/local-ipv4)
+      ZOO_INSTANCE_IPS=$(aws ec2 describe-instances --region eu-west-1 --instance-ids \
+        $(aws autoscaling describe-auto-scaling-instances --region eu-west-1 --output text \
+            --query "AutoScalingInstances[?AutoScalingGroupName=='zookeeper'].InstanceId") \
+      --query "Reservations[].Instances[].PrivateIpAddress" | jq -r '.[]')
+      ZOO_ALL_SERVERS=$(echo "$ZOO_INSTANCE_IPS" | sed -E 's/^([0-9]+\.[0-9]+\.[0-9]+\.([0-9]+))$/server.\2=\1:2888:3888;2181/' | sort | paste -sd ' ')
+      ZOO_SERVERS=$(echo ${ZOO_ALL_SERVERS} |sed -e "s/${ZOO_HOST_IP}/0.0.0.0/")
+      ZOO_MY_ID=$(echo $ZOO_HOST_IP | sed -E 's/^[0-9]+\.[0-9]+\.[0-9]+\.([0-9]+)$/\1/')
+
+      # write zookeeper env
+      echo "ZOO_SERVERS=${ZOO_SERVERS}"  > /etc/default/zookeeper
+      echo "ZOO_MY_ID=${ZOO_MY_ID}"     >> /etc/default/zookeeper
+      echo "ZOO_HOST_IP=${ZOO_HOST_IP}" >> /etc/default/zookeeper
+    path: /opt/zookeeper-env.sh
+    permissions: '0755'
 
 runcmd:
   - amazon-linux-extras install epel -y
   - systemctl daemon-reload
+
+  - echo "{\"dns\":[\"$(grep nameserver /etc/resolv.conf | awk -d'' '{print $2}')\", \"8.8.8.8\"]}" > /etc/docker/daemon.json
   - systemctl enable docker
-  - systemctl enable zookeeper
   - systemctl start docker
+  
+  - /opt/zookeeper-env.sh
+  - systemctl enable zookeeper
   - systemctl start zookeeper

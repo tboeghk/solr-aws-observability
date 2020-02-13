@@ -146,7 +146,7 @@ resource "aws_launch_template" "zookeeper" {
 }
 
 resource "aws_autoscaling_group" "zookeeper" {
-  desired_capacity     = 1
+  desired_capacity     = 3
   max_size             = 5
   min_size             = 1
   name                 = "zookeeper"
@@ -207,7 +207,7 @@ resource "aws_launch_template" "solr" {
 }
 
 resource "aws_autoscaling_group" "solr" {
-  desired_capacity     = 1
+  desired_capacity     = 3
   max_size             = 5
   min_size             = 1
   name                 = "solr"
