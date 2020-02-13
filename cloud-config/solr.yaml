@@ -15,6 +15,7 @@ package_upgrade: true
 
 packages:
   - docker
+  - jq
 
 write_files:
   - content: |
@@ -24,15 +25,30 @@ write_files:
         After=docker.service
 
         [Service]
+        EnvironmentFile=/etc/default/solr
         Restart=always
         ExecStartPre=-/usr/bin/docker stop %n
         ExecStartPre=-/usr/bin/docker rm %n
         ExecStartPre=/usr/bin/docker pull solr:8.4
-        ExecStart=/usr/bin/docker run --rm --name %n -p 8983:8983 -e ZK_HOST= solr:8.4
+        ExecStart=/usr/bin/docker run --rm --name %n \
+            -p 8983:8983 \
+            -e ZK_HOST=${ZK_HOST} \
+            solr:8.4
 
         [Install]
         WantedBy=local.target
     path: /etc/systemd/system/solr.service
+  - content: |
+      #!/bin/bash
+      ZK_HOST=$(aws ec2 describe-instances --region eu-west-1 --instance-ids \
+        $(aws autoscaling describe-auto-scaling-instances --region eu-west-1 --output text \
+          --query "AutoScalingInstances[?AutoScalingGroupName=='zookeeper'].InstanceId") \
+      --query "Reservations[].Instances[].PrivateDnsName" | jq -r '.[]' | awk 'ORS=":2181,"' | sed 's/.$//')
+
+      # write solr env
+      echo "ZK_HOST=${ZK_HOST}"   > /etc/default/solr
+    path: /opt/solr-env.sh
+    permissions: '0755'
 
 runcmd:
   - yum -y update
@@ -41,4 +57,5 @@ runcmd:
   - systemctl enable docker
   - systemctl start docker
   - systemctl enable solr
+  - /opt/solr-env.sh
   - systemctl start solr
