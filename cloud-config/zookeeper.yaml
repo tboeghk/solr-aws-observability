@@ -67,4 +67,5 @@ runcmd:
   
   - /opt/zookeeper-env.sh
   - systemctl enable zookeeper
+  - sleep $[ ( $RANDOM % 10 )  + 1 ]s
   - systemctl start zookeeper

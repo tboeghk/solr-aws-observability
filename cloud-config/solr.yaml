@@ -33,6 +33,8 @@ write_files:
         ExecStart=/usr/bin/docker run --rm --name %n \
             -p 8983:8983 \
             -e ZK_HOST=${ZK_HOST} \
+            -e SOLR_HEAP=${SOLR_HEAP} \
+            -e ENABLE_REMOTE_JMX_OPTS=true \
             solr:8.4
 
         [Install]
@@ -43,10 +45,12 @@ write_files:
       ZK_HOST=$(aws ec2 describe-instances --region eu-west-1 --instance-ids \
         $(aws autoscaling describe-auto-scaling-instances --region eu-west-1 --output text \
           --query "AutoScalingInstances[?AutoScalingGroupName=='zookeeper'].InstanceId") \
-      --query "Reservations[].Instances[].PrivateDnsName" | jq -r '.[]' | awk 'ORS=":2181,"' | sed 's/.$//')
+      --query "Reservations[].Instances[].PrivateIpAddress" | jq -r '.[]' | awk 'ORS=":2181,"' | sed 's/.$//')
+      SOLR_HEAP_MB=$(awk '/MemTotal/ { printf "%.0f", $2/1024/2 }' /proc/meminfo)
 
       # write solr env
-      echo "ZK_HOST=${ZK_HOST}"   > /etc/default/solr
+      echo "ZK_HOST=${ZK_HOST}"          > /etc/default/solr
+      echo "SOLR_HEAP=${SOLR_HEAP_MB}m" >> /etc/default/solr
     path: /opt/solr-env.sh
     permissions: '0755'
 
@@ -58,4 +62,5 @@ runcmd:
   - systemctl start docker
   - systemctl enable solr
   - /opt/solr-env.sh
+  - sleep 15s
   - systemctl start solr
