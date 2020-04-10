@@ -1,10 +1,14 @@
 provider "aws" {
-  version = "~> 2.48"
+  version = "~> 2.57"
   region  = "eu-west-1"
 }
 
 provider "http" {
-  version = "~> 1.1"
+  version = "~> 1.2"
+}
+
+provider "template" {
+  version = "~> 2.1"
 }
 
 # ---------------------------------------------------------------------
@@ -23,13 +27,11 @@ resource "aws_vpc" "this" {
 }
 
 # create a subnet in the first available availability zone.
-# For the sake of simplicity, we create a single subnet that
-# requires hosts to have a public ipv4
 resource "aws_subnet" "public" {
-  count             = 1
-  availability_zone = data.aws_availability_zones.available.names[count.index]
-  cidr_block        = aws_vpc.this.cidr_block
+  availability_zone = data.aws_availability_zones.available.names[0]
+  cidr_block        = cidrsubnet(aws_vpc.this.cidr_block, 1, 0)
   vpc_id            = aws_vpc.this.id
+  map_public_ip_on_launch = true
 }
 
 # create a internet gateway for the vpc
@@ -39,7 +41,7 @@ resource "aws_internet_gateway" "this" {
 
 # create a route table inside the vpc to route all
 # traffic (expect own subnet) through the internet gateway
-resource "aws_route_table" "this" {
+resource "aws_route_table" "public" {
   vpc_id = aws_vpc.this.id
 
   route {
@@ -49,10 +51,53 @@ resource "aws_route_table" "this" {
 }
 
 # enable routing in subnets via the internet gateway
-resource "aws_route_table_association" "this" {
-  count          = 1
-  subnet_id      = aws_subnet.public[count.index].id
-  route_table_id = aws_route_table.this.id
+resource "aws_route_table_association" "public" {
+  subnet_id      = aws_subnet.public.id
+  route_table_id = aws_route_table.public.id
+}
+
+# create a private subnet for hosts without a public
+# ip address
+resource "aws_subnet" "private" {
+  availability_zone = data.aws_availability_zones.available.names[0]
+  cidr_block        = cidrsubnet(aws_vpc.this.cidr_block, 1, 1)
+  vpc_id            = aws_vpc.this.id
+}
+
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.this.id
+}
+
+resource "aws_route_table_association" "private" {
+  subnet_id      = aws_subnet.private.id
+  route_table_id = aws_route_table.private.id
+}
+
+data "aws_ami" "nat" {
+  most_recent = true
+  filter {
+    name   = "name"
+    values = ["amzn-ami-vpc-nat*"]
+  }
+  owners = ["amazon"]
+}
+
+resource "aws_instance" "nat" {
+  ami                         = data.aws_ami.nat.id
+  instance_type               = "t3.nano"
+  source_dest_check           = false
+  subnet_id                   = aws_subnet.public.id
+  associate_public_ip_address = true
+
+  tags = {
+    Name = "nat-instance"
+  }
+}
+
+resource "aws_route" "nat-instance" {
+  route_table_id = aws_route_table.private.id
+  instance_id    = aws_instance.nat.id
+  destination_cidr_block = "0.0.0.0/0"
 }
 
 # query my workstations public ip
@@ -127,14 +172,30 @@ resource "aws_iam_instance_profile" "node" {
 # Launch Zookeeper instances
 # ---------------------------------------------------------------------
 #
+#
+# render user-data
+data "template_cloudinit_config" "zookeeper" {
+  gzip = false
+  base64_encode = true
+
+  part {
+    content_type = "text/cloud-config"
+    content      = file("cloud-config/default.yaml")
+  }
+  part {
+    content_type = "text/cloud-config"
+    content      = file("cloud-config/zookeeper.yaml")
+  }
+}
+
 # configure the template to launch zookeeper instances
 resource "aws_launch_template" "zookeeper" {
   name_prefix            = "zookeeper"
   instance_type          = "t3.nano"
   image_id               = data.aws_ami.amazon_linux.id
-  user_data              = base64encode(file("cloud-config/zookeeper.yaml"))
+  user_data              = data.template_cloudinit_config.zookeeper.rendered
   network_interfaces {
-    associate_public_ip_address = true
+    associate_public_ip_address = false
     delete_on_termination       = true
   }
   iam_instance_profile {
@@ -150,7 +211,7 @@ resource "aws_autoscaling_group" "zookeeper" {
   max_size             = 5
   min_size             = 1
   name                 = "zookeeper"
-  vpc_zone_identifier  = aws_subnet.public.*.id
+  vpc_zone_identifier  = aws_subnet.private.*.id
 
   launch_template {
     id      = aws_launch_template.zookeeper.id
@@ -162,6 +223,11 @@ resource "aws_autoscaling_group" "zookeeper" {
     value               = "zookeeper"
     propagate_at_launch = true
   }
+
+  depends_on = [
+    aws_internet_gateway.this,
+    aws_instance.nat
+  ]
 }
 
 # ---------------------------------------------------------------------
@@ -188,11 +254,25 @@ resource "aws_security_group" "solr" {
   }
 }
 
+data "template_cloudinit_config" "solr" {
+  gzip = false
+  base64_encode = true
+
+  part {
+    content_type = "text/cloud-config"
+    content      = file("cloud-config/default.yaml")
+  }
+  part {
+    content_type = "text/cloud-config"
+    content      = file("cloud-config/solr.yaml")
+  }
+}
+
 resource "aws_launch_template" "solr" {
   name_prefix            = "solr"
   instance_type          = "t3.large"
   image_id               = data.aws_ami.amazon_linux.id
-  user_data              = base64encode(file("cloud-config/solr.yaml"))
+  user_data              = data.template_cloudinit_config.solr.rendered
   network_interfaces {
     associate_public_ip_address = true
     delete_on_termination       = true
@@ -223,14 +303,12 @@ resource "aws_autoscaling_group" "solr" {
     value               = "solr"
     propagate_at_launch = true
   }
-}
 
-#data "aws_instance" "this" {
-#  filter {
-#    name   = "tag:Name"
-#    values = ["zookeeper", "solr"]
-#  }
-#}
+  depends_on = [
+    aws_internet_gateway.this,
+    aws_autoscaling_group.zookeeper
+  ]
+}
 
 #output "instances" {
 #  value = data.aws_instance.this

@@ -1,22 +1,4 @@
 #cloud-config
-groups:
-  - default
-
-users:
-  - default
-  - name: torsten
-    sudo: ALL=(ALL) NOPASSWD:ALL
-    shell: /bin/bash
-    ssh_authorized_keys:
-      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGY2GZU19neGfVAVuIOKt0iIMKUDDz0H72dPROsVPFen
-
-package_update: true
-package_upgrade: true
-
-packages:
-  - docker
-  - jq
-
 write_files:
   - content: |
       [Unit]
@@ -51,21 +33,13 @@ write_files:
       ZOO_MY_ID=$(echo $ZOO_HOST_IP | sed -E 's/^[0-9]+\.[0-9]+\.[0-9]+\.([0-9]+)$/\1/')
 
       # write zookeeper env
-      echo "ZOO_SERVERS=${ZOO_SERVERS}"  > /etc/default/zookeeper
-      echo "ZOO_MY_ID=${ZOO_MY_ID}"     >> /etc/default/zookeeper
-      echo "ZOO_HOST_IP=${ZOO_HOST_IP}" >> /etc/default/zookeeper
+      echo "ZOO_SERVERS=${ZOO_SERVERS}"
+      echo "ZOO_MY_ID=${ZOO_MY_ID}"
+      echo "ZOO_HOST_IP=${ZOO_HOST_IP}"
     path: /opt/zookeeper-env.sh
     permissions: '0755'
 
 runcmd:
-  - amazon-linux-extras install epel -y
-  - systemctl daemon-reload
-
-  - echo "{\"dns\":[\"$(grep nameserver /etc/resolv.conf | awk -d'' '{print $2}')\", \"8.8.8.8\"]}" > /etc/docker/daemon.json
-  - systemctl enable docker
-  - systemctl start docker
-  
-  - /opt/zookeeper-env.sh
+  - /opt/zookeeper-env.sh > /etc/default/zookeeper
   - systemctl enable zookeeper
-  - sleep $[ ( $RANDOM % 10 )  + 1 ]s
   - systemctl start zookeeper
