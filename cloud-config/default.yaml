@@ -1,4 +1,10 @@
 #cloud-config
+merge_how:
+ - name: list
+   settings: [append]
+ - name: dict
+   settings: [recurse_array]
+
 #
 # This cloud config part is installed on all hosts. It includes
 # ssh users and Docker as a running service.
@@ -12,6 +18,7 @@ users:
 packages:
   - docker
   - jq
+  - nc
 
 runcmd:
   - amazon-linux-extras install epel -y

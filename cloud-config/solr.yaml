@@ -1,4 +1,10 @@
 #cloud-config
+merge_how:
+ - name: list
+   settings: [append]
+ - name: dict
+   settings: [recurse_array]
+
 write_files:
   - content: |
         [Unit]
@@ -17,7 +23,7 @@ write_files:
             -e ZK_HOST=${ZK_HOST} \
             -e SOLR_HEAP=${SOLR_HEAP} \
             -e ENABLE_REMOTE_JMX_OPTS=true \
-            solr:8.5
+            solr:8.6
 
         [Install]
         WantedBy=local.target
@@ -35,8 +41,20 @@ write_files:
       echo "SOLR_HEAP=${SOLR_HEAP_MB}m"
     path: /opt/solr-env.sh
     permissions: '0755'
+  - content: |
+      #!/bin/bash
+      source /opt/solr-env.sh
+      while  ! echo "ruok" | nc -w 1 ${ZK_HOST%%:*} 2181
+      do
+          echo "Waiting for Zookeeper ${ZK_HOST%%:*} to be up and running"
+          sleep 1
+      done
+      echo "Zookeeper ready at ${ZK_HOST%%:*} ..."
+    path: /opt/check-zookeeper.sh
+    permissions: '0755'
 
 runcmd:
   - /opt/solr-env.sh > /etc/default/solr
   - systemctl enable solr
-  #- systemctl start solr
+  - /opt/check-zookeeper.sh
+  - systemctl start solr
