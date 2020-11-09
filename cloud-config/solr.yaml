@@ -6,7 +6,8 @@ merge_how:
    settings: [recurse_array]
 
 write_files:
-  - content: |
+  - path: /etc/systemd/system/solr.service
+    content: |
         [Unit]
         Description=Solr
         Requires=docker.service
@@ -17,18 +18,19 @@ write_files:
         Restart=always
         ExecStartPre=-/usr/bin/docker stop %n
         ExecStartPre=-/usr/bin/docker rm %n
-        ExecStartPre=/usr/bin/docker pull solr:8.5
         ExecStart=/usr/bin/docker run --rm --name %n \
             -p 8983:8983 \
             -e ZK_HOST=${ZK_HOST} \
+            -e SOLR_HOST=${SOLR_HOST} \
             -e SOLR_HEAP=${SOLR_HEAP} \
             -e ENABLE_REMOTE_JMX_OPTS=true \
             solr:8.6
 
         [Install]
         WantedBy=local.target
-    path: /etc/systemd/system/solr.service
-  - content: |
+  - path: /opt/solr-env.sh
+    permissions: '0755'
+    content: |
       #!/bin/bash
       ZK_HOST=$(aws ec2 describe-instances --region eu-west-1 --instance-ids \
         $(aws autoscaling describe-auto-scaling-instances --region eu-west-1 --output text \
@@ -39,9 +41,10 @@ write_files:
       # write solr env
       echo "ZK_HOST=${ZK_HOST}"
       echo "SOLR_HEAP=${SOLR_HEAP_MB}m"
-    path: /opt/solr-env.sh
+      echo "SOLR_HOST=$(hostname)"
+  - path: /opt/check-zookeeper.sh
     permissions: '0755'
-  - content: |
+    content: |
       #!/bin/bash
       source /opt/solr-env.sh
       while  ! echo "ruok" | nc -w 1 ${ZK_HOST%%:*} 2181
@@ -50,8 +53,6 @@ write_files:
           sleep 1
       done
       echo "Zookeeper ready at ${ZK_HOST%%:*} ..."
-    path: /opt/check-zookeeper.sh
-    permissions: '0755'
 
 runcmd:
   - /opt/solr-env.sh > /etc/default/solr
