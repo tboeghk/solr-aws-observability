@@ -11,11 +11,11 @@ data "template_cloudinit_config" "zookeeper" {
 
   part {
     content_type = "text/cloud-config"
-    content      = file("cloud-config/default.yaml")
+    content      = file("../../cloud-config/default.yaml")
   }
   part {
     content_type = "text/cloud-config"
-    content      = file("cloud-config/zookeeper.yaml")
+    content      = file("../../cloud-config/zookeeper.yaml")
   }
 }
 

@@ -1,14 +1,4 @@
 terraform {
-  # synchronize cluster state across trainers
-  backend "remote" {
-    organization = "tboeghk"
-    workspaces {
-      name = "solr-autoscaling-nodes"
-    }
-
-    # credentials for terraform.io are read from .terraformrc
-  }
-
   required_providers {
     aws = {
       source = "hashicorp/aws"
@@ -20,6 +10,10 @@ terraform {
     }
     local = {
       source = "hashicorp/local"
+      version = "~> 2.0"
+    }
+    http = {
+      source = "hashicorp/http"
       version = "~> 2.0"
     }
   }
@@ -34,6 +28,3 @@ provider "aws" {
 
 variable "aws_access_key" {}
 variable "aws_secret_key" {}
-variable "external_ip" {
-  type = string
-}

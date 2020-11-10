@@ -3,15 +3,11 @@
 # ---------------------------------------------------------------------
 #
 data "terraform_remote_state" "vpc" {
-  backend = "remote"
+  backend = "local"
   config = {
-    organization = "tboeghk"
-    workspaces = {
-      name = "solr-autoscaling-infrastructure"
-    }
+    path = "../aws-vpc/terraform.tfstate"
   }
 }
-
 
 # ---------------------------------------------------------------------
 # Configure EC2 instances

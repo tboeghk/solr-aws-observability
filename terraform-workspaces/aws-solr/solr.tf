@@ -18,7 +18,7 @@ resource "aws_security_group" "solr" {
     from_port = 8983
     to_port   = 8983
     protocol    = "tcp"
-    cidr_blocks = [ "${var.external_ip}/32" ]
+    cidr_blocks = [ "${data.terraform_remote_state.vpc.outputs.external_ip}/32" ]
   }
 }
 
@@ -28,11 +28,11 @@ data "template_cloudinit_config" "solr" {
 
   part {
     content_type = "text/cloud-config"
-    content      = file("cloud-config/default.yaml")
+    content      = file("../../cloud-config/default.yaml")
   }
   part {
     content_type = "text/cloud-config"
-    content      = file("cloud-config/solr.yaml")
+    content      = file("../../cloud-config/solr.yaml")
   }
 }
 

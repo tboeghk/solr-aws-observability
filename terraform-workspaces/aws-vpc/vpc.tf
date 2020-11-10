@@ -87,6 +87,10 @@ resource "aws_route" "nat-instance" {
   destination_cidr_block = "0.0.0.0/0"
 }
 
+data "http" "external_ip" {
+  url = "https://ifconfig.me/ip"
+}
+
 # add ssh ingress by default
 resource "aws_default_security_group" "this" {
   vpc_id = aws_vpc.this.id
@@ -109,6 +113,6 @@ resource "aws_default_security_group" "this" {
     from_port = 22
     to_port   = 22
     protocol    = "tcp"
-    cidr_blocks = [ "${var.external_ip}/32" ]
+    cidr_blocks = [ "${data.http.external_ip.body}/32" ]
   }
 }
