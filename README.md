@@ -1,9 +1,7 @@
 # Solr AWS autoscaling experiments
 
-```bash
-cat << EOF > vars.auto.tfvars
-external_ip = "$(curl -s https://ifconfig.me/ip)"
-EOF
-tf init
-tf apply
-```
+This repo holds a playground for Solr Cloud autoscaling experiments
+with AWS and Terraform. It's idea is to quickly spin up a Zookeeper/Solr
+ensemble and evaluate SolrCloud autoscaling triggers in conjunction
+with AWS autoscaling group events.
+
