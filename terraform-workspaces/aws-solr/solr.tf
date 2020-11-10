@@ -58,8 +58,8 @@ resource "aws_launch_template" "solr" {
 }
 
 resource "aws_autoscaling_group" "solr" {
-  desired_capacity     = 3
-  max_size             = 5
+  desired_capacity     = var.solr_instance_count
+  max_size             = 20
   min_size             = 1
   name                 = "solr"
   vpc_zone_identifier  = [ data.terraform_remote_state.vpc.outputs.subnet_public_id ]
@@ -80,6 +80,15 @@ resource "aws_autoscaling_group" "solr" {
   ]
 }
 
-#output "instances" {
-#  value = data.aws_instance.this
-#}
+# query asg members
+data "aws_instances" "solr" {
+  instance_tags = {
+    Name = "solr"
+  }
+
+  instance_state_names = ["running"]
+
+  depends_on = [
+    aws_autoscaling_group.solr
+  ]
+}
