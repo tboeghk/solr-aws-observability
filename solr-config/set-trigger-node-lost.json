@@ -1,0 +1,9 @@
+{
+  "set-trigger": {
+    "name": "node_lost_trigger",
+    "event": "nodeLost",
+    "waitFor": "2s",
+    "preferredOperation": "DELETENODE"
+  }
+}
+    

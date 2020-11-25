@@ -1,0 +1,8 @@
+{
+  "set-trigger" : {
+    "name" : "node_added_trigger",
+    "event" : "nodeAdded",
+    "waitFor" : "1s",
+    "preferredOperation": "ADDREPLICA"
+  }
+}

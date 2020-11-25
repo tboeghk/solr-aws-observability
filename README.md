@@ -23,13 +23,17 @@ cd terraform-workspaces/aws-vpc && tf init && tf apply
 cd ../aws-solr && tf init && tf apply
 
 # retreive Solr urls
-cd ../aws-solr-instances && tf init && tf apply
+cd ../aws-solr-instances && tf init && tf apply -auto-approve
 
 # create film sample collection
-solr-create-collection.sh
+./solr-create-collection.sh
 ```
 
 ## Experimenting
+
+```bash
+./solr-configure-autoscaling.sh
+```
 
 
 ## Tear down
