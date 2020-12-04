@@ -25,6 +25,8 @@ write_files:
             -e SOLR_HEAP=${SOLR_HEAP} \
             -e ENABLE_REMOTE_JMX_OPTS=true \
             solr:8.6
+        ExecStop=-/usr/bin/curl -ksfL \
+          "http://localhost8983/solr/admin/collections?action=DELETENODE&node=${SOLR_HOST}:8983_solr"
 
         [Install]
         WantedBy=local.target
