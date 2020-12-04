@@ -1,24 +1,14 @@
 {
   "set-cluster-policy": [
     {
-      "replica": 1, "shard": "#EACH", "node": "#ANY"
+      "cores": "<4", "node": "#ANY"
+    },
+    {
+      "replica": "<2", "shard": "#EACH", "node": "#ANY"
+    },
+    {
+      "replica": "#EQUAL", "shard": "#EACH", "node": "#ANY"
     }
-  ],
-  "set-trigger" : {
-    "name" : "node_added_trigger",
-    "event" : "nodeAdded",
-    "waitFor" : "1s",
-    "enabled" : true,
-    "actions" : [
-      {
-        "name" : "compute_plan",
-        "class" : "solr.ComputePlanAction",
-        "collections" : "films"
-      },{
-        "name" : "execute_plan",
-        "class" : "solr.ExecutePlanAction"
-      }
-    ]
-  }
+  ]
 }
     

@@ -26,5 +26,5 @@ variable "aws_access_key" {}
 variable "aws_secret_key" {}
 variable "solr_instance_count" {
   type = number
-  default = 5
+  default = 4
 }

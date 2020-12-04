@@ -23,7 +23,7 @@ cd terraform-workspaces/aws-vpc && tf init && tf apply
 cd ../aws-solr && tf init && tf apply
 
 # retreive Solr urls
-cd ../aws-solr-instances && tf init && tf apply -auto-approve
+cd ../aws-solr-instances && tf init && tf apply -auto-approve && cd ../..
 
 # create film sample collection
 ./solr-create-collection.sh
@@ -39,7 +39,7 @@ cd ../aws-solr-instances && tf init && tf apply -auto-approve
 ## Tear down
 
 ```bash
-cd terraform-workspaces/aws-solr-instances && tf destroy
-cd ../aws-solr && tf destroy
-cd ../aws-vpc && tf destroy
+cd terraform-workspaces/aws-solr-instances && tf destroy -auto-approve
+cd ../aws-solr && tf destroy -auto-approve
+cd ../aws-vpc && tf destroy -auto-approve
 ```
