@@ -18,7 +18,7 @@ resource "aws_security_group" "solr" {
     from_port = 8983
     to_port   = 8983
     protocol    = "tcp"
-    cidr_blocks = [ "${data.terraform_remote_state.vpc.outputs.external_ip}/32" ]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
@@ -28,11 +28,19 @@ data "template_cloudinit_config" "solr" {
 
   part {
     content_type = "text/cloud-config"
-    content      = file("../../cloud-config/default.yaml")
+    content      = file("../../src/main/cloud-config/default.yaml")
   }
   part {
     content_type = "text/cloud-config"
-    content      = file("../../cloud-config/solr.yaml")
+    content      = file("../../src/main/cloud-config/ssm-agent.yaml")
+  }
+  part {
+    content_type = "text/cloud-config"
+    content      = file("../../src/main/cloud-config/node-exporter.yaml")
+  }
+  part {
+    content_type = "text/cloud-config"
+    content      = file("../../src/main/cloud-config/solr.yaml")
   }
 }
 
@@ -44,9 +52,9 @@ resource "aws_launch_template" "solr" {
   network_interfaces {
     associate_public_ip_address = true
     delete_on_termination       = true
-    security_groups             = [ 
-          data.terraform_remote_state.vpc.outputs.default_security_group_id, 
-          aws_security_group.solr.id 
+    security_groups             = [
+          aws_security_group.solr.id,
+          data.aws_security_group.default.id
     ]
   }
   iam_instance_profile {

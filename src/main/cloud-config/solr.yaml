@@ -24,9 +24,32 @@ write_files:
             -e SOLR_HOST=${SOLR_HOST} \
             -e SOLR_HEAP=${SOLR_HEAP} \
             -e ENABLE_REMOTE_JMX_OPTS=true \
-            solr:8.6
+            solr:8.9-slim
         ExecStop=-/usr/bin/curl -ksfL \
           "http://localhost8983/solr/admin/collections?action=DELETENODE&node=${SOLR_HOST}:8983_solr"
+
+        [Install]
+        WantedBy=local.target
+  - path: /etc/systemd/system/solr-prometheus-exporter.service
+    content: |
+        [Unit]
+        Description=Solr Prometheus Exporter
+        Requires=solr.service
+        After=solr.service
+
+        [Service]
+        EnvironmentFile=/etc/default/solr
+        Restart=always
+        ExecStartPre=-/usr/bin/docker stop %n
+        ExecStartPre=-/usr/bin/docker rm %n
+        ExecStart=/usr/bin/docker run --rm --name %n \
+            -p 9854:9854 \
+            solr:8.9-slim /opt/solr/contrib/prometheus-exporter/bin/solr-exporter \
+              -p 9854 \
+              -z ${ZK_HOST} \
+              -b http://${SOLR_HOST}:8983/solr \
+              -f /opt/solr/contrib/prometheus-exporter/conf/solr-exporter-config.xml \
+              -n 4
 
         [Install]
         WantedBy=local.target
@@ -41,9 +64,11 @@ write_files:
       SOLR_HEAP_MB=$(awk '/MemTotal/ { printf "%.0f", $2/1024/2 }' /proc/meminfo)
 
       # write solr env
-      echo "ZK_HOST=${ZK_HOST}"
-      echo "SOLR_HEAP=${SOLR_HEAP_MB}m"
-      echo "SOLR_HOST=$(hostname)"
+      cat << EOF > /etc/default/solr
+      ZK_HOST=${ZK_HOST}
+      SOLR_HEAP=${SOLR_HEAP_MB}m
+      SOLR_HOST=$(hostname)
+      EOF
   - path: /opt/check-zookeeper.sh
     permissions: '0755'
     content: |
@@ -57,7 +82,9 @@ write_files:
       echo "Zookeeper ready at ${ZK_HOST%%:*} ..."
 
 runcmd:
-  - /opt/solr-env.sh > /etc/default/solr
+  - /opt/solr-env.sh
   - systemctl enable solr
+  - systemctl enable solr-prometheus-exporter
   - /opt/check-zookeeper.sh
   - systemctl start solr
+  - systemctl start solr-prometheus-exporter
