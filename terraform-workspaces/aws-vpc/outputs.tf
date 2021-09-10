@@ -9,11 +9,3 @@ output "subnet_private_id" {
 output "subnet_public_id" {
     value = aws_subnet.public.id
 }
-
-output "default_security_group_id" {
-    value = aws_default_security_group.this.id
-}
-
-output "external_ip" {
-    value = data.http.external_ip.body
-}
