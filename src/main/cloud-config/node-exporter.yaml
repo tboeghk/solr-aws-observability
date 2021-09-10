@@ -1,0 +1,32 @@
+#cloud-config
+merge_how:
+ - name: list
+   settings: [append]
+ - name: dict
+   settings: [recurse_array]
+
+write_files:
+  - owner: root:root
+    path: /etc/systemd/system/node-exporter.service
+    permissions: '0644'
+    content: |
+      [Unit]
+      Description=Prometheus Node Metrics Exporter
+
+      [Service]
+      Restart=always
+      ExecStart=/usr/local/bin/node_exporter
+
+      [Install]
+      WantedBy=multi-user.target
+
+runcmd:
+  # Install node-exporter
+  - curl -sfLo /tmp/node_exporter.tar.gz https://github.com/prometheus/node_exporter/releases/download/v1.2.2/node_exporter-1.2.2.linux-amd64.tar.gz
+  - tar xzvf /tmp/node_exporter.tar.gz -C /usr/local/bin/ --strip-components=1 --wildcards --no-anchored '*node_exporter' -C /usr/local/bin/
+  - chmod 755 /usr/local/bin/node_exporter
+
+  # Launch node-exporter
+  - systemctl daemon-reload
+  - systemctl enable node-exporter
+  - systemctl start node-exporter

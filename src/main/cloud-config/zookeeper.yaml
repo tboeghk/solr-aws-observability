@@ -17,13 +17,14 @@ write_files:
       Restart=always
       ExecStartPre=-/usr/bin/docker stop %n
       ExecStartPre=-/usr/bin/docker rm %n
-      ExecStartPre=/usr/bin/docker pull zookeeper:3.5
+      ExecStartPre=/usr/bin/docker pull zookeeper:3.6
       ExecStart=/usr/bin/docker run --rm --name %n \
-        -p 2181:2181 -p 2888:2888 -p 3888:3888 \
-        -e ZOO_4LW_COMMANDS_WHITELIST=srvr,ruok \
+        --network=host \
+        -e ZOO_4LW_COMMANDS_WHITELIST=mntr,conf,ruok,srvr \
         -e ZOO_MY_ID=${ZOO_MY_ID} \
-        -e ZOO_SERVERS=${ZOO_SERVERS} \
-        zookeeper:3.5
+        -e "ZOO_SERVERS=${ZOO_SERVERS}" \
+        -e "ZOO_CFG_EXTRA=metricsProvider.className=org.apache.zookeeper.metrics.prometheus.PrometheusMetricsProvider metricsProvider.httpPort=9141" \
+        zookeeper:3.6
 
       [Install]
       WantedBy=local.target
@@ -36,17 +37,17 @@ write_files:
             --query "AutoScalingInstances[?AutoScalingGroupName=='zookeeper'].InstanceId") \
       --query "Reservations[].Instances[].PrivateIpAddress" | jq -r '.[]')
       ZOO_ALL_SERVERS=$(echo "$ZOO_INSTANCE_IPS" | sed -E 's/^([0-9]+\.[0-9]+\.[0-9]+\.([0-9]+))$/server.\2=\1:2888:3888;2181/' | sort | paste -sd ' ')
-      ZOO_SERVERS=$(echo ${ZOO_ALL_SERVERS} |sed -e "s/${ZOO_HOST_IP}/0.0.0.0/")
       ZOO_MY_ID=$(echo $ZOO_HOST_IP | sed -E 's/^[0-9]+\.[0-9]+\.[0-9]+\.([0-9]+)$/\1/')
 
       # write zookeeper env
-      echo "ZOO_SERVERS=${ZOO_SERVERS}"
-      echo "ZOO_MY_ID=${ZOO_MY_ID}"
-      echo "ZOO_HOST_IP=${ZOO_HOST_IP}"
+      cat << EOF > /etc/default/zookeeper
+      ZOO_SERVERS=${ZOO_ALL_SERVERS}
+      ZOO_MY_ID=${ZOO_MY_ID}
+      EOF
     path: /opt/zookeeper-env.sh
     permissions: '0755'
 
 runcmd:
-  - /opt/zookeeper-env.sh > /etc/default/zookeeper
+  - /opt/zookeeper-env.sh
   - systemctl enable zookeeper
   - systemctl start zookeeper

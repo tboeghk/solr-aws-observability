@@ -2,7 +2,7 @@ terraform {
   required_providers {
     aws = {
       source = "hashicorp/aws"
-      version = "~> 2.70"
+      version = "~> 3.58"
     }
     template = {
       source = "hashicorp/template"
@@ -10,10 +10,10 @@ terraform {
     }
     local = {
       source = "hashicorp/local"
-      version = "~> 2.0"
+      version = "~> 2.1"
     }
   }
-  required_version = ">= 0.13"
+  required_version = ">= 1.0.0"
 }
 
 provider "aws" {
@@ -26,5 +26,5 @@ variable "aws_access_key" {}
 variable "aws_secret_key" {}
 variable "solr_instance_count" {
   type = number
-  default = 4
+  default = 3
 }

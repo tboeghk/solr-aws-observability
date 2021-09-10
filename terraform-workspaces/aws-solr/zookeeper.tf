@@ -11,18 +11,26 @@ data "template_cloudinit_config" "zookeeper" {
 
   part {
     content_type = "text/cloud-config"
-    content      = file("../../cloud-config/default.yaml")
+    content      = file("../../src/main/cloud-config/default.yaml")
   }
   part {
     content_type = "text/cloud-config"
-    content      = file("../../cloud-config/zookeeper.yaml")
+    content      = file("../../src/main/cloud-config/ssm-agent.yaml")
+  }
+  part {
+    content_type = "text/cloud-config"
+    content      = file("../../src/main/cloud-config/node-exporter.yaml")
+  }
+  part {
+    content_type = "text/cloud-config"
+    content      = file("../../src/main/cloud-config/zookeeper.yaml")
   }
 }
 
 # configure the template to launch zookeeper instances
 resource "aws_launch_template" "zookeeper" {
   name_prefix            = "zookeeper"
-  instance_type          = "t3.small"
+  instance_type          = "t3.micro"
   image_id               = data.aws_ami.amazon_linux.id
   user_data              = data.template_cloudinit_config.zookeeper.rendered
   network_interfaces {

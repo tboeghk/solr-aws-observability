@@ -31,16 +31,30 @@ data "aws_ami" "amazon_linux" {
 # data from the AWS API via AWS CLI.
 resource "aws_iam_role" "node" {
   name = "node"
-  assume_role_policy = file("iam-policies/node-assume-role.js")
+
+  managed_policy_arns = [
+    "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
+    "arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess"]
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
 }
-resource "aws_iam_policy" "node-permissions" {
-  name   = "node-permissions"
-  policy = file("iam-policies/node-permissions.js")
+EOF
+  tags = {
+    Creator     = "Terraform"
+  }
 }
-resource "aws_iam_role_policy_attachment" "node-assume-role" {
-  policy_arn = aws_iam_policy.node-permissions.arn
-  role       = aws_iam_role.node.name
-}
+
 resource "aws_iam_instance_profile" "node" {
   name = "node"
   role = aws_iam_role.node.name

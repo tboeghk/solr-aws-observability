@@ -5,16 +5,6 @@ merge_how:
  - name: dict
    settings: [recurse_array]
 
-#
-# This cloud config part is installed on all hosts. It includes
-# ssh users and Docker as a running service.
-users:
-  - name: torsten
-    sudo: ALL=(ALL) NOPASSWD:ALL
-    shell: /bin/bash
-    ssh_authorized_keys:
-      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGY2GZU19neGfVAVuIOKt0iIMKUDDz0H72dPROsVPFen
-
 packages:
   - docker
   - jq
