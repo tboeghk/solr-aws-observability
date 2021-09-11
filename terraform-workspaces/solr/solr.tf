@@ -22,6 +22,24 @@ resource "aws_security_group" "solr" {
   }
 }
 
+locals {
+  solr_architecture = length(regexall("g\\.", var.solr.instance_type)) > 0 ? "arm64" : "x86_64"
+}
+
+# Search the most recent amazon linux ami
+data "aws_ami" "solr" {
+  most_recent = true
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm*"]
+  }
+  filter {
+    name   = "architecture"
+    values = [local.solr_architecture]
+  }
+  owners = ["amazon"]
+}
+
 data "template_cloudinit_config" "solr" {
   gzip = false
   base64_encode = true
@@ -47,7 +65,7 @@ data "template_cloudinit_config" "solr" {
 resource "aws_launch_template" "solr" {
   name_prefix            = "solr"
   instance_type          = "t3.large"
-  image_id               = data.aws_ami.amazon_linux.id
+  image_id               = data.aws_ami.solr.id
   user_data              = data.template_cloudinit_config.solr.rendered
   network_interfaces {
     associate_public_ip_address = true

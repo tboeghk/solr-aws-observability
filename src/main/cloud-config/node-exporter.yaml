@@ -22,7 +22,7 @@ write_files:
 
 runcmd:
   # Install node-exporter
-  - curl -sfLo /tmp/node_exporter.tar.gz https://github.com/prometheus/node_exporter/releases/download/v1.2.2/node_exporter-1.2.2.linux-amd64.tar.gz
+  - curl -sfLo /tmp/node_exporter.tar.gz https://github.com/prometheus/node_exporter/releases/download/v1.2.2/node_exporter-1.2.2.linux-$(dpkg --print-architecture).tar.gz
   - tar xzvf /tmp/node_exporter.tar.gz -C /usr/local/bin/ --strip-components=1 --wildcards --no-anchored '*node_exporter' -C /usr/local/bin/
   - chmod 755 /usr/local/bin/node_exporter
 

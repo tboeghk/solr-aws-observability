@@ -13,6 +13,7 @@ packages:
 runcmd:
   - amazon-linux-extras install epel -y
   - systemctl daemon-reload
+  - yum install -y dpkg
 
   - echo "{\"dns\":[\"$(grep nameserver /etc/resolv.conf | awk -d'' '{print $2}')\", \"8.8.8.8\"]}" > /etc/docker/daemon.json
   - systemctl enable docker

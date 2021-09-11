@@ -13,20 +13,6 @@ data "terraform_remote_state" "vpc" {
 # Configure EC2 instances
 # ---------------------------------------------------------------------
 #
-# Search the most recent amazon linux ami
-data "aws_ami" "amazon_linux" {
-  most_recent = true
-  filter {
-    name   = "name"
-    values = ["amzn2-ami-hvm*"]
-  }
-  filter {
-    name   = "architecture"
-    values = ["x86_64"]
-  }
-  owners = ["amazon"]
-}
-
 # Create a bunch of IAM roles to allow the created nodes to retrieve
 # data from the AWS API via AWS CLI.
 resource "aws_iam_role" "node" {

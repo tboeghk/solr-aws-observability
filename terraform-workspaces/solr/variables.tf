@@ -24,7 +24,29 @@ provider "aws" {
 
 variable "aws_access_key" {}
 variable "aws_secret_key" {}
-variable "solr_instance_count" {
-  type = number
-  default = 3
+
+variable "zookeeper" {
+  type = object({
+    instance_type = string
+    version       = string
+    count         = number
+  })
+  default = {
+    instance_type = "t3.micro"
+    version       = "3.6"
+    count         = 3
+  }
+}
+
+variable "solr" {
+  type = object({
+    instance_type = string
+    version       = string
+    count         = number
+  })
+  default = {
+    instance_type = "t3.large"
+    version       = "8.9.0-slim"
+    count         = 2
+  }
 }

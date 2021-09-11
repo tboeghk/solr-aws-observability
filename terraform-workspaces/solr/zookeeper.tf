@@ -4,6 +4,24 @@
 # ---------------------------------------------------------------------
 #
 #
+locals {
+  zookeeper_architecture = length(regexall("g\\.", var.zookeeper.instance_type)) > 0 ? "arm64" : "x86_64"
+}
+
+# Search the most recent amazon linux ami
+data "aws_ami" "zookeeper" {
+  most_recent = true
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm*"]
+  }
+  filter {
+    name   = "architecture"
+    values = [local.zookeeper_architecture]
+  }
+  owners = ["amazon"]
+}
+
 # render user-data
 data "template_cloudinit_config" "zookeeper" {
   gzip = false
@@ -31,7 +49,7 @@ data "template_cloudinit_config" "zookeeper" {
 resource "aws_launch_template" "zookeeper" {
   name_prefix            = "zookeeper"
   instance_type          = "t3.micro"
-  image_id               = data.aws_ami.amazon_linux.id
+  image_id               = data.aws_ami.zookeeper.id
   user_data              = data.template_cloudinit_config.zookeeper.rendered
   network_interfaces {
     associate_public_ip_address = false
