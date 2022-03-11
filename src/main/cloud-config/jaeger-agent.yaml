@@ -25,7 +25,7 @@ write_files:
           -p 6832:6832/udp \
           -p 5778:5778 \
           jaegertracing/jaeger-agent:1.32 \
-          --reporter.grpc.host-port=$${JAEGER_HOST}:14250
+          --reporter.grpc.host-port=${JAEGER_HOST}:14250
 
       [Install]
       WantedBy=multi-user.target
@@ -40,7 +40,7 @@ write_files:
 
       # write env
       cat << EOF > /etc/default/jaeger-agent
-      JAEGER_HOST=$${JAEGER_HOST}
+      JAEGER_HOST=${JAEGER_HOST}
       EOF
 
 runcmd:

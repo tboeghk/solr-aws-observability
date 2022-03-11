@@ -2,8 +2,8 @@
 set -xe
 
 # retrieve first Solr node
-SOLR_URL=$(terraform output -state=terraform-workspaces/aws-solr-instances/terraform.tfstate -json | jq -r '.solr_instance_urls.value[0]')
-SOLR_INSTANCE_COUNT=$(terraform output -state=terraform-workspaces/aws-solr-instances/terraform.tfstate -json | jq -r '.solr_instance_urls.value|length')
+SOLR_URL=http://52.49.208.104:8983
+SOLR_INSTANCE_COUNT=2
 
 # create blobstore collection
 curl "${SOLR_URL}/solr/admin/collections?action=CREATE&name=.system&replicationFactor=${SOLR_INSTANCE_COUNT}"
@@ -16,4 +16,4 @@ curl -X POST -H 'Content-type:application/json' --data-binary '{"add-field": {"n
 curl -X POST -H 'Content-type:application/json' --data-binary '{"add-copy-field" : {"source":"*","dest":"_text_"}}' "${SOLR_URL}/solr/films/schema"
 
 # index data
-docker run -it solr:8.7 bash bin/post -url "${SOLR_URL}/solr/films/update" example/films/films.json
+docker run -it solr:8.11.1-slim bash bin/post -url "${SOLR_URL}/solr/films/update" example/films/films.json
