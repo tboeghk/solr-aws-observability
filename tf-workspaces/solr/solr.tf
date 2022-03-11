@@ -2,10 +2,15 @@
 # Launch Solr instances
 # ---------------------------------------------------------------------
 #
+locals {
+  solr_architecture = length(regexall("g\\.", var.solr.instance_type)) > 0 ? "arm64" : "x86_64"
+}
+
+# Allow public access to Solr
 resource "aws_security_group" "solr" {
-  name        = "solr"
+  name        = "public-solr"
   description = "Security group for Solr nodes in the cluster"
-  vpc_id      = data.terraform_remote_state.vpc.outputs.vpc_id
+  vpc_id      = data.terraform_remote_state.vpc.outputs.vpc.vpc_id
 
   egress {
     from_port   = 0
@@ -15,15 +20,11 @@ resource "aws_security_group" "solr" {
   }
 
   ingress {
-    from_port = 8983
-    to_port   = 8983
+    from_port   = 8983
+    to_port     = 8983
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-}
-
-locals {
-  solr_architecture = length(regexall("g\\.", var.solr.instance_type)) > 0 ? "arm64" : "x86_64"
 }
 
 # Search the most recent amazon linux ami
@@ -40,8 +41,8 @@ data "aws_ami" "solr" {
   owners = ["amazon"]
 }
 
-data "template_cloudinit_config" "solr" {
-  gzip = false
+data "cloudinit_config" "solr" {
+  gzip          = false
   base64_encode = true
 
   part {
@@ -63,20 +64,20 @@ data "template_cloudinit_config" "solr" {
 }
 
 resource "aws_launch_template" "solr" {
-  name_prefix            = "solr"
-  instance_type          = "t3.large"
-  image_id               = data.aws_ami.solr.id
-  user_data              = data.template_cloudinit_config.solr.rendered
+  name_prefix   = "solr-"
+  instance_type = var.solr.instance_type
+  image_id      = data.aws_ami.solr.id
+  user_data     = data.cloudinit_config.solr.rendered
   network_interfaces {
     associate_public_ip_address = true
     delete_on_termination       = true
-    security_groups             = [
-          aws_security_group.solr.id,
-          data.aws_security_group.default.id
+    security_groups = [
+      aws_security_group.solr.id,
+      data.terraform_remote_state.vpc.outputs.vpc.default_security_group_id
     ]
   }
   iam_instance_profile {
-    name                 = aws_iam_instance_profile.node.name
+    name = aws_iam_instance_profile.node.name
   }
   lifecycle {
     create_before_destroy = "true"
@@ -84,11 +85,11 @@ resource "aws_launch_template" "solr" {
 }
 
 resource "aws_autoscaling_group" "solr" {
-  desired_capacity     = var.solr_instance_count
-  max_size             = 20
-  min_size             = 1
-  name                 = "solr"
-  vpc_zone_identifier  = [ data.terraform_remote_state.vpc.outputs.subnet_public_id ]
+  desired_capacity    = var.solr.count
+  max_size            = 20
+  min_size            = 1
+  name                = "solr"
+  vpc_zone_identifier = [data.terraform_remote_state.vpc.outputs.vpc.public_subnets[0]]
 
   launch_template {
     id      = aws_launch_template.solr.id
@@ -103,18 +104,5 @@ resource "aws_autoscaling_group" "solr" {
 
   depends_on = [
     aws_autoscaling_group.zookeeper
-  ]
-}
-
-# query asg members
-data "aws_instances" "solr" {
-  instance_tags = {
-    Name = "solr"
-  }
-
-  instance_state_names = ["running"]
-
-  depends_on = [
-    aws_autoscaling_group.solr
   ]
 }

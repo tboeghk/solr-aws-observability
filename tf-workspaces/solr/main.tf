@@ -45,8 +45,3 @@ resource "aws_iam_instance_profile" "node" {
   name = "node"
   role = aws_iam_role.node.name
 }
-
-data "aws_security_group" "default" {
-  name = "default"
-  vpc_id = data.terraform_remote_state.vpc.outputs.vpc_id
-}
