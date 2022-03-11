@@ -1,0 +1,42 @@
+## template: jinja
+#cloud-config
+merge_how:
+ - name: list
+   settings: [append]
+ - name: dict
+   settings: [recurse_array]
+
+write_files:
+  - owner: root:root
+    path: /etc/systemd/system/jaeger.service
+    permissions: '0644'
+    content: |
+      [Unit]
+      Description=Jaeger Distributed Tracing
+      After=docker.service
+      Requires=docker.service
+
+      [Service]
+      Restart=always
+      ExecStart=/usr/bin/docker run --rm \
+          -e COLLECTOR_ZIPKIN_HOST_PORT=:9411 \
+          -e SPAN_STORAGE_TYPE=memory \
+          -p 5775:5775/udp \
+          -p 6831:6831/udp \
+          -p 6832:6832/udp \
+          -p 5778:5778 \
+          -p 14250:14250 \
+          -p 14268:14268 \
+          -p 14269:14269 \
+          -p 9411:9411 \
+          -p 9091:9091 \
+          jaegertracing/all-in-one:1.32 \
+            --query.http-server.host-port=:9091
+
+      [Install]
+      WantedBy=multi-user.target
+
+runcmd:
+  - systemctl daemon-reload
+  - systemctl enable jaeger
+  - systemctl start jaeger

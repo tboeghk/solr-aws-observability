@@ -24,7 +24,7 @@ data "aws_ami" "zookeeper" {
 
 # render user-data
 data "cloudinit_config" "zookeeper" {
-  gzip = false
+  gzip          = false
   base64_encode = true
 
   part {
@@ -47,16 +47,16 @@ data "cloudinit_config" "zookeeper" {
 
 # configure the template to launch zookeeper instances
 resource "aws_launch_template" "zookeeper" {
-  name_prefix            = "zookeeper-"
-  instance_type          = var.zookeeper.instance_type
-  image_id               = data.aws_ami.zookeeper.id
-  user_data              = data.cloudinit_config.zookeeper.rendered
+  name_prefix   = "zookeeper-"
+  instance_type = var.zookeeper.instance_type
+  image_id      = data.aws_ami.zookeeper.id
+  user_data     = data.cloudinit_config.zookeeper.rendered
   network_interfaces {
     associate_public_ip_address = false
     delete_on_termination       = true
   }
   iam_instance_profile {
-    name                 = aws_iam_instance_profile.node.name
+    name = data.terraform_remote_state.vpc.outputs.default_aws_iam_instance_profile_name
   }
   lifecycle {
     create_before_destroy = "true"
@@ -64,11 +64,11 @@ resource "aws_launch_template" "zookeeper" {
 }
 
 resource "aws_autoscaling_group" "zookeeper" {
-  desired_capacity     = 3
-  max_size             = 5
-  min_size             = 1
-  name                 = "zookeeper"
-  vpc_zone_identifier  = [ data.terraform_remote_state.vpc.outputs.vpc.private_subnets[0] ]
+  desired_capacity    = 3
+  max_size            = 5
+  min_size            = 1
+  name                = "zookeeper"
+  vpc_zone_identifier = [data.terraform_remote_state.vpc.outputs.vpc.private_subnets[0]]
 
   launch_template {
     id      = aws_launch_template.zookeeper.id

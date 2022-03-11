@@ -22,7 +22,7 @@ module "vpc" {
   enable_nat_gateway = true
   enable_vpn_gateway = false
 
-  default_vpc_enable_dns_hostnames = true
+  enable_dns_hostnames = true
 
   tags = {
     Terraform = "true"

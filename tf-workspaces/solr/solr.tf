@@ -59,7 +59,13 @@ data "cloudinit_config" "solr" {
   }
   part {
     content_type = "text/cloud-config"
-    content      = file("../../src/main/cloud-config/solr.yaml")
+    content      = file("../../src/main/cloud-config/jaeger-agent.yaml")
+  }
+  part {
+    content_type = "text/cloud-config"
+    content      = templatefile("../../src/main/cloud-config/solr.yaml", {
+      solr_version = var.solr.version
+    })
   }
 }
 
@@ -77,7 +83,7 @@ resource "aws_launch_template" "solr" {
     ]
   }
   iam_instance_profile {
-    name = aws_iam_instance_profile.node.name
+    name = data.terraform_remote_state.vpc.outputs.default_aws_iam_instance_profile_name
   }
   lifecycle {
     create_before_destroy = "true"

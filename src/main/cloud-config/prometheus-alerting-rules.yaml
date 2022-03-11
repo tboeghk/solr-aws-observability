@@ -1,0 +1,14 @@
+## template: jinja
+#cloud-config
+merge_how:
+ - name: list
+   settings: [append]
+ - name: dict
+   settings: [recurse_array]
+
+runcmd:
+  - mkdir -p /etc/prometheus/alerts
+  - curl -sfLo /etc/prometheus/alerts/node.yaml https://raw.githubusercontent.com/tboeghk/solr-aws-observability/master/src/main/prometheus/alerts/node.yaml
+  - curl -sfLo /etc/prometheus/alerts/prometheus.yaml https://raw.githubusercontent.com/tboeghk/solr-aws-observability/master/src/main/prometheus/alerts/prometheus.yaml
+  #- curl -sfLo /etc/prometheus/alerts/solr.yaml https://raw.githubusercontent.com/tboeghk/solr-aws-observability/master/src/main/prometheus/alerts/solr.yaml
+  - curl -sfLo /etc/prometheus/alerts/zookeeper.yaml https://raw.githubusercontent.com/tboeghk/solr-aws-observability/master/src/main/prometheus/alerts/zookeeper.yaml

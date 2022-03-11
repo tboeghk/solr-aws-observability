@@ -1,0 +1,110 @@
+## template: jinja
+#cloud-config
+merge_how:
+ - name: list
+   settings: [append]
+ - name: dict
+   settings: [recurse_array]
+
+write_files:
+  - owner: root:root
+    path: /etc/prometheus/prometheus.yaml
+    content: |
+      global:
+        scrape_interval:     30s
+      rule_files:
+        - /etc/prometheus/alerts/*.yaml
+      scrape_configs:
+        - job_name: 'nodes'
+          ec2_sd_configs:
+            - region: ${aws_region}
+              port: 9100
+          relabel_configs:
+            - action: labelmap
+              regex: __meta_ec2_tag_(Name)
+            - action: labelmap
+              regex: __meta_ec2_(instance_id|instance_type|availability_zone)
+            - source_labels: [__meta_ec2_private_dns_name]
+              action: replace
+              target_label: instance
+
+        - job_name: 'prometheus'
+          ec2_sd_configs:
+            - region: ${aws_region}
+              port: 9090
+          relabel_configs:
+            - source_labels: [__meta_ec2_tag_Name]
+              regex: prometheus
+              action: keep
+            - action: labelmap
+              regex: __meta_ec2_tag_(Name)
+            - action: labelmap
+              regex: __meta_ec2_(instance_id|instance_type|availability_zone)
+            - source_labels: [__meta_ec2_private_dns_name]
+              action: replace
+              target_label: instance
+
+        - job_name: 'zookeeper'
+          ec2_sd_configs:
+            - region: ${aws_region}
+              port: 9141
+          relabel_configs:
+            - source_labels: [__meta_ec2_tag_Name]
+              regex: zookeeper
+              action: keep
+            - action: labelmap
+              regex: __meta_ec2_tag_(Name)
+            - action: labelmap
+              regex: __meta_ec2_(instance_id|instance_type|availability_zone)
+            - source_labels: [__meta_ec2_private_dns_name]
+              action: replace
+              target_label: instance
+
+        - job_name: 'solr'
+          ec2_sd_configs:
+            - region: ${aws_region}
+              port: 9854
+          relabel_configs:
+            - source_labels: [__meta_ec2_tag_Name]
+              regex: solr
+              action: keep
+            - action: labelmap
+              regex: __meta_ec2_tag_(Name)
+            - action: labelmap
+              regex: __meta_ec2_(instance_id|instance_type|availability_zone)
+            - source_labels: [__meta_ec2_private_dns_name]
+              action: replace
+              target_label: instance
+
+
+  - owner: root:root
+    path: /etc/systemd/system/prometheus.service
+    permissions: '0644'
+    content: |
+      [Unit]
+      Description=Prometheus Monitoring
+      After=docker.service
+      Requires=docker.service
+
+      [Service]
+      Restart=always
+      ExecStart=/usr/bin/docker run --rm \
+          -p 9090:9090 \
+          -v /etc/prometheus:/etc/prometheus \
+          -v /var/lib/prometheus/data:/data \
+          --name prometheus \
+          prom/prometheus:${prometheus_version} \
+          --config.file=/etc/prometheus/prometheus.yaml \
+          --storage.tsdb.path=/data \
+          --storage.tsdb.retention.time=2d
+
+      [Install]
+      WantedBy=multi-user.target
+
+runcmd:
+  - mkdir -p /var/lib/prometheus/data
+  - chown -R nfsnobody:nfsnobody /var/lib/prometheus/data
+
+  - systemctl daemon-reload
+  - systemctl enable prometheus
+  - systemctl start prometheus

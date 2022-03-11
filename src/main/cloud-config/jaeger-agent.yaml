@@ -1,0 +1,50 @@
+## template: jinja
+#cloud-config
+merge_how:
+ - name: list
+   settings: [append]
+ - name: dict
+   settings: [recurse_array]
+
+write_files:
+  - owner: root:root
+    path: /etc/systemd/system/jaeger-agent.service
+    permissions: '0644'
+    content: |
+      [Unit]
+      Description=Jaeger Distributed Tracing Agent
+      After=docker.service
+      Requires=docker.service
+
+      [Service]
+      EnvironmentFile=/etc/default/jaeger-agent
+      Restart=always
+      ExecStart=/usr/bin/docker run --rm \
+          -p 5775:5775/udp \
+          -p 6831:6831/udp \
+          -p 6832:6832/udp \
+          -p 5778:5778 \
+          jaegertracing/jaeger-agent:1.32 \
+          --reporter.grpc.host-port=$${JAEGER_HOST}:14250
+
+      [Install]
+      WantedBy=multi-user.target
+
+  - path: /opt/jaeger-env.sh
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      JAEGER_HOST=$(aws ec2 describe-instances --region eu-west-1 \
+        --filters Name=instance-state-name,Values=running Name=tag-value,Values=prometheus \
+        --query "Reservations[].Instances[].PrivateIpAddress" | jq -r '.[]')
+
+      # write env
+      cat << EOF > /etc/default/jaeger-agent
+      JAEGER_HOST=$${JAEGER_HOST}
+      EOF
+
+runcmd:
+  - /opt/jaeger-env.sh
+  - systemctl daemon-reload
+  - systemctl enable jaeger-agent
+  - systemctl start jaeger-agent
