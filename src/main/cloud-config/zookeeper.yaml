@@ -32,7 +32,7 @@ write_files:
     path: /etc/systemd/system/zookeeper.service
   - content: |
       #!/bin/bash
-      ZOO_HOST_IP=$(curl -s curl http://169.254.169.254/latest/meta-data/local-ipv4)
+      ZOO_HOST_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
       ZOO_INSTANCE_IPS=$(aws ec2 describe-instances --region eu-west-1 --instance-ids \
         $(aws autoscaling describe-auto-scaling-instances --region eu-west-1 --output text \
             --query "AutoScalingInstances[?AutoScalingGroupName=='zookeeper'].InstanceId") \

@@ -45,10 +45,13 @@ EOF
 
 ```bash
 # create VPC and basic security groups
-cd terraform-workspaces/aws-vpc && tf init && tf apply
+cd tf-workspaces/vpc && tf init && tf apply
+
+# create monitoring instances
+cd ../monitoring && tf init && tf apply
 
 # create Zookeeper and Solr cluster
-cd ../aws-solr && tf init && tf apply
+cd ../solr && tf init && tf apply
 
 # retreive Solr urls
 cd ../aws-solr-instances && tf init && tf apply -auto-approve && cd ../..
