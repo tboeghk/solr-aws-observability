@@ -89,10 +89,11 @@ write_files:
       [Service]
       Restart=always
       ExecStart=/usr/bin/docker run --rm \
+          --net localdocker \
+          --name %N \
           -p 9090:9090 \
           -v /etc/prometheus:/etc/prometheus \
           -v /var/lib/prometheus/data:/data \
-          --name prometheus \
           prom/prometheus:${prometheus_version} \
           --config.file=/etc/prometheus/prometheus.yaml \
           --storage.tsdb.path=/data \

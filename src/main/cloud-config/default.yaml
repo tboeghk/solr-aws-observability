@@ -18,3 +18,5 @@ runcmd:
   - echo "{\"dns\":[\"$(grep nameserver /etc/resolv.conf | awk -d'' '{print $2}')\", \"8.8.8.8\"]}" > /etc/docker/daemon.json
   - systemctl enable docker
   - systemctl start docker
+
+  - docker network create localdocker

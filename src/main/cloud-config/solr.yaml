@@ -32,7 +32,7 @@ write_files:
         </shardHandlerFactory>
         <metrics enabled="$${metricsEnabled:true}"/>
         <tracerConfig name="tracerConfig" class="org.apache.solr.jaeger.JaegerTracerConfigurator">
-          <str name="agentHost">localhost</str>
+          <str name="agentHost">jaeger-agent</str>
           <int name="agentPort">5775</int>
           <bool name="logSpans">true</bool>
           <int name="flushInterval">1000</int>
@@ -52,7 +52,9 @@ write_files:
         Restart=always
         ExecStartPre=-/usr/bin/docker stop %n
         ExecStartPre=-/usr/bin/docker rm %n
-        ExecStart=/usr/bin/docker run --rm --name %n \
+        ExecStart=/usr/bin/docker run --rm \
+            --net localdocker \
+            --name %N \
             -p 8983:8983 \
             -v /etc/solr/solr.xml:/opt/solr/server/solr/solr.xml \
             -v /etc/solr/jaeger-core.jar:/opt/solr/server/solr-webapp/webapp/WEB-INF/lib/jaeger-core.jar \
@@ -80,7 +82,9 @@ write_files:
         Restart=always
         ExecStartPre=-/usr/bin/docker stop %n
         ExecStartPre=-/usr/bin/docker rm %n
-        ExecStart=/usr/bin/docker run --rm --name %n \
+        ExecStart=/usr/bin/docker run --rm \
+            --net localdocker \
+            --name %n \
             -p 9854:9854 \
             solr:${solr_version} /opt/solr/contrib/prometheus-exporter/bin/solr-exporter \
               -p 9854 \

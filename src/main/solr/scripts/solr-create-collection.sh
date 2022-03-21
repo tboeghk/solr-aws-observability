@@ -2,7 +2,7 @@
 set -xe
 
 # retrieve first Solr node
-SOLR_URL=http://52.49.208.104:8983
+SOLR_URL=http://54.170.116.142:8983
 SOLR_INSTANCE_COUNT=2
 
 # create blobstore collection
