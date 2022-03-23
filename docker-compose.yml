@@ -1,0 +1,30 @@
+version:  "2.4"
+
+services:
+ zookeeper:
+  image: zookeeper:3.6.3
+  environment:
+   - ZOO_MY_ID=1
+   - ZOO_4LW_COMMANDS_WHITELIST=stat,ruok,conf,isro,mntr
+
+ solr:
+  image: solr:8.11.1-slim
+  ports:
+    - 8983:8983
+  environment:
+   - ZK_HOST=zookeeper:2181
+  volumes:
+    - ./src/main/solr/solr.xml:/var/solr/data/solr.xml
+    - ./jaeger-core.jar:/opt/solr/server/solr-webapp/webapp/WEB-INF/lib/jaeger-core.jar
+    - ./jaeger-thrift.jar:/opt/solr/server/solr-webapp/webapp/WEB-INF/lib/jaeger-thrift.jar
+    - ./solr-jaegertracer-configurator.jar:/opt/solr/server/solr-webapp/webapp/WEB-INF/lib/solr-jaegertracer-configurator.jar
+    - ./libthrift.jar:/opt/solr/server/solr-webapp/webapp/WEB-INF/lib/libthrift.jar
+
+ jaeger:
+  image: jaegertracing/all-in-one:1.32
+  command: --query.http-server.host-port=:9091
+  ports:
+    - 9091:9091
+  environment:
+    - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+    - SPAN_STORAGE_TYPE=memory

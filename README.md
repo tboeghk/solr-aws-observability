@@ -74,3 +74,18 @@ cd terraform-workspaces/aws-solr-instances && tf destroy -auto-approve
 cd ../aws-solr && tf destroy -auto-approve
 cd ../aws-vpc && tf destroy -auto-approve
 ```
+
+
+## Local experimenting
+
+```shell
+$ curl -sfLo jaeger-core.jar https://repo1.maven.org/maven2/io/jaegertracing/jaeger-core/1.8.0/jaeger-core-1.8.0.jar
+$ curl -sfLo jaeger-thrift.jar https://repo1.maven.org/maven2/io/jaegertracing/jaeger-thrift/1.8.0/jaeger-thrift-1.8.0.jar
+$ curl -sfLo libthrift.jar https://repo1.maven.org/maven2/org/apache/thrift/libthrift/0.16.0/libthrift-0.16.0.jar
+$ curl -sfLo solr-jaegertracer-configurator.jar https://repo1.maven.org/maven2/org/apache/solr/solr-jaegertracer-configurator/8.11.1/solr-jaegertracer-configurator-8.11.1.jar
+```
+
+```shell
+$ curl "http://localhost:8983/solr/admin/collections?action=CLUSTERPROP&name=samplePercentage&val=100"
+$ ./src/main/solr/scripts/solr-create-collection.sh
+```
