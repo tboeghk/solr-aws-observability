@@ -67,15 +67,11 @@ data "cloudinit_config" "prometheus" {
       aws_region         = var.aws_region
     })
   }
-  part {
-    content_type = "text/cloud-config"
-    content      = file("../../src/main/cloud-config/jaeger.yaml")
-  }
 }
 
 module "prometheus" {
   source  = "terraform-aws-modules/ec2-instance/aws"
-  version = "~> 3.0"
+  version = "~> 4.0"
 
   name = "prometheus"
 

@@ -11,6 +11,7 @@ locals {
 
 module "vpc" {
   source = "terraform-aws-modules/vpc/aws"
+  version = "~> 3.14.0"
 
   name = "solr-observability"
   cidr = local.vpc_cidr

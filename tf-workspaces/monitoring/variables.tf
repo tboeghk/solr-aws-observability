@@ -9,7 +9,7 @@ variable "prometheus" {
   })
   default = {
     instance_type = "t4g.small"
-    version       = "v2.33.5"
+    version       = "v2.36.0"
   }
 }
 
