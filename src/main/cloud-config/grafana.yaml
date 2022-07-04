@@ -1,0 +1,59 @@
+#cloud-config
+merge_how:
+ - name: list
+   settings: [append]
+ - name: dict
+   settings: [recurse_array]
+
+write_files:
+  - owner: root:root
+    path: /etc/grafana/provisioning/datasources/datasources.yaml
+    permissions: '0644'
+    content: |
+      apiVersion: 1
+      datasources:
+        - name: prometheus
+          type: prometheus
+          access: proxy
+          isDefault: true
+          url: http://${prometheus_hostname}:9000
+        - name: loki
+          type: loki
+          access: proxy
+          url: http://${loki_hostname}:3100
+        - name: tempo
+          type: tempo
+          access: proxy
+          url: http://${tempo_hostname}:3200
+
+  - owner: root:root
+    path: /etc/systemd/system/grafana.service
+    permissions: '0644'
+    content: |
+      [Unit]
+      Description=Grafana Monitoring
+      After=docker.service
+      Requires=docker.service
+
+      [Service]
+      Restart=always
+      ExecStart=/usr/bin/docker run --rm \
+          -p 3000:3000 \
+          -v /etc/grafana/provisioning:/etc/grafana/provisioning \
+          -e GF_AUTH_ANONYMOUS_ENABLED=true \
+          -e GF_AUTH_ANONYMOUS_ORG_ROLE=Admin \
+          -e GF_AUTH_DISABLE_LOGIN_FORM=true \
+          --name %N \
+          grafana/grafana:${grafana_version}
+
+      [Install]
+      WantedBy=multi-user.target
+
+runcmd:
+  - mkdir -p /var/lib/grafana
+  - chown -R 472:472 /var/lib/grafana
+
+  # Launch grafana
+  - systemctl daemon-reload
+  - systemctl enable grafana
+  - systemctl start grafana

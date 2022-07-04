@@ -10,8 +10,8 @@ locals {
 }
 
 module "vpc" {
-  source = "terraform-aws-modules/vpc/aws"
-  version = "~> 3.14.0"
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "~> 3.14.2"
 
   name = "solr-observability"
   cidr = local.vpc_cidr
@@ -20,13 +20,12 @@ module "vpc" {
   private_subnets = [cidrsubnet(local.vpc_cidr, 1, 1)]
   public_subnets  = [cidrsubnet(local.vpc_cidr, 1, 0)]
 
-  enable_nat_gateway = true
-  enable_vpn_gateway = false
-
+  enable_nat_gateway   = true
+  enable_vpn_gateway   = false
   enable_dns_hostnames = true
 
   tags = {
-    Terraform = "true"
+    Terraform   = "true"
     Environment = "solr-observability"
   }
 }

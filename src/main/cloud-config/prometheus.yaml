@@ -96,6 +96,10 @@ write_files:
           -v /var/lib/prometheus/data:/data \
           prom/prometheus:${prometheus_version} \
           --config.file=/etc/prometheus/prometheus.yaml \
+          --web.enable-remote-write-receiver \
+          --enable-feature=exemplar-storage \
+          --web.enable-lifecycle \
+          --web.enable-admin-api \
           --storage.tsdb.path=/data \
           --storage.tsdb.retention.time=2d
 

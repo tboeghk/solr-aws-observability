@@ -9,7 +9,39 @@ variable "prometheus" {
   })
   default = {
     instance_type = "t4g.small"
-    version       = "v2.36.0"
+    version       = "v2.36.2"
+  }
+}
+variable "grafana" {
+  type = object({
+    instance_type = string
+    version       = string
+  })
+  default = {
+    instance_type = "t4g.small"
+    version       = "8.5.6"
+  }
+}
+
+variable "loki" {
+  type = object({
+    instance_type = string
+    version       = string
+  })
+  default = {
+    instance_type = "t4g.small"
+    version       = "2.5.0"
+  }
+}
+
+variable "tempo" {
+  type = object({
+    instance_type = string
+    version       = string
+  })
+  default = {
+    instance_type = "t4g.small"
+    version       = "1.4.1"
   }
 }
 

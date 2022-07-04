@@ -3,12 +3,12 @@
 # ---------------------------------------------------------------------
 #
 locals {
-  prometheus_architecture = length(regexall("g\\.", var.prometheus.instance_type)) > 0 ? "arm64" : "x86_64"
+  grafana_architecture = length(regexall("g\\.", var.grafana.instance_type)) > 0 ? "arm64" : "x86_64"
 }
 
-resource "aws_security_group" "prometheus" {
-  name        = "public-prometheus"
-  description = "Security group for Prometheus nodes"
+resource "aws_security_group" "grafana" {
+  name        = "public-grafana"
+  description = "Security group for Grafana nodes"
   vpc_id      = data.terraform_remote_state.vpc.outputs.vpc.vpc_id
 
   egress {
@@ -19,15 +19,15 @@ resource "aws_security_group" "prometheus" {
   }
 
   ingress {
-    from_port   = 9090
-    to_port     = 9091
+    from_port   = 3000
+    to_port     = 3000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
 # Search the most recent amazon linux ami
-data "aws_ami" "prometheus" {
+data "aws_ami" "grafana" {
   most_recent = true
   filter {
     name   = "name"
@@ -35,12 +35,12 @@ data "aws_ami" "prometheus" {
   }
   filter {
     name   = "architecture"
-    values = [local.prometheus_architecture]
+    values = [local.grafana_architecture]
   }
   owners = ["amazon"]
 }
 
-data "cloudinit_config" "prometheus" {
+data "cloudinit_config" "grafana" {
   gzip          = false
   base64_encode = false
 
@@ -58,32 +58,30 @@ data "cloudinit_config" "prometheus" {
   }
   part {
     content_type = "text/cloud-config"
-    content      = file("../../src/main/cloud-config/prometheus-alerting-rules.yaml")
-  }
-  part {
-    content_type = "text/cloud-config"
-    content = templatefile("../../src/main/cloud-config/prometheus.yaml", {
-      prometheus_version = var.prometheus.version
-      aws_region         = var.aws_region
+    content = templatefile("../../src/main/cloud-config/grafana.yaml", {
+      grafana_version     = var.grafana.version
+      prometheus_hostname = module.prometheus.private_dns
+      tempo_hostname      = module.tempo.private_dns
+      loki_hostname       = module.loki.private_dns
     })
   }
 }
 
-module "prometheus" {
+module "grafana" {
   source  = "terraform-aws-modules/ec2-instance/aws"
   version = "~> 4.0"
 
-  name = "prometheus"
+  name = "grafana"
 
   ami           = data.aws_ami.prometheus.id
-  instance_type = var.prometheus.instance_type
+  instance_type = var.grafana.instance_type
   monitoring    = false
   vpc_security_group_ids = [
-    aws_security_group.prometheus.id,
+    aws_security_group.grafana.id,
     data.terraform_remote_state.vpc.outputs.vpc.default_security_group_id
   ]
   subnet_id                   = data.terraform_remote_state.vpc.outputs.vpc.public_subnets[0]
-  user_data                   = data.cloudinit_config.prometheus.rendered
+  user_data                   = data.cloudinit_config.grafana.rendered
   user_data_replace_on_change = true
   associate_public_ip_address = true
   iam_instance_profile        = data.terraform_remote_state.vpc.outputs.default_aws_iam_instance_profile_name

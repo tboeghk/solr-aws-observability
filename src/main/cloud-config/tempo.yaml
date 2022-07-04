@@ -1,0 +1,102 @@
+#cloud-config
+merge_how:
+ - name: list
+   settings: [append]
+ - name: dict
+   settings: [recurse_array]
+
+write_files:
+  - owner: root:root
+    path: /etc/tempo/config.yaml
+    permissions: '0644'
+    content: |
+      metrics_generator_enabled: true
+      server:
+        http_listen_port: 3200
+      distributor:
+        receivers:
+          jaeger:
+            protocols:
+              thrift_http:
+              grpc:
+              thrift_binary:
+              thrift_compact:
+          zipkin:
+          otlp:
+            protocols:
+              http:
+              grpc:
+          opencensus:
+      ingester:
+        trace_idle_period: 10s
+        max_block_bytes: 1_000_000
+        max_block_duration: 5m
+      compactor:
+        compaction:
+          compaction_window: 1h
+          max_block_bytes: 100_000_000
+          block_retention: 1h
+          compacted_block_retention: 10m
+      metrics_generator:
+        registry:
+          external_labels:
+            source: tempo
+            cluster: docker-compose
+        storage:
+          path: /var/lib/tempo/generator/wal
+          remote_write:
+            - url: http://${prometheus_hostname}:9090/api/v1/write
+              send_exemplars: true
+      storage:
+        trace:
+          backend: local
+          block:
+            bloom_filter_false_positive: .05
+            index_downsample_bytes: 1000
+            encoding: zstd
+          wal:
+            path: /var/lib/tempo/wal
+            encoding: snappy
+          local:
+            path: /var/lib/tempo/blocks
+          pool:
+            max_workers: 100
+            queue_depth: 10000
+      overrides:
+        metrics_generator_processors: [service-graphs, span-metrics]
+
+  - owner: root:root
+    path: /etc/systemd/system/tempo.service
+    permissions: '0644'
+    content: |
+      [Unit]
+      Description=Loki Log Management
+      After=docker.service
+      Requires=docker.service
+
+      [Service]
+      Restart=always
+      ExecStart=/usr/bin/docker run --rm \
+          -v /etc/tempo:/etc/tempo \
+          -v /var/lib/tempo:/var/lib/tempo \
+          -p 14268:14268 \
+          -p 3200:3200 \
+          -p 4317:4317 \
+          -p 4318:4318 \
+          -p 9411:9411 \
+          --name %N \
+          grafana/tempo:${tempo_version} \
+            -config.file=/etc/tempo/config.yaml
+
+      [Install]
+      WantedBy=multi-user.target
+
+runcmd:
+  # Create Loki directories
+  - mkdir -p /var/lib/tempo/wal /var/lib/tempo/blocks /var/lib/tempo/generator/wal
+  - chmod -R 777 /var/lib/tempo
+
+  # Launch service
+  - systemctl daemon-reload
+  - systemctl enable tempo
+  - systemctl start tempo

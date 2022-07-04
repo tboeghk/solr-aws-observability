@@ -1,0 +1,75 @@
+#cloud-config
+merge_how:
+ - name: list
+   settings: [append]
+ - name: dict
+   settings: [recurse_array]
+
+write_files:
+  - owner: root:root
+    path: /etc/loki/config.yaml
+    permissions: '0644'
+    content: |
+      auth_enabled: false
+      server:
+        http_listen_port: 3100
+        grpc_listen_port: 9096
+      common:
+        path_prefix: /var/lib/loki
+        storage:
+          filesystem:
+            chunks_directory: /var/lib/loki/chunks
+            rules_directory: /var/lib/loki/rules
+        replication_factor: 1
+        ring:
+          instance_addr: 127.0.0.1
+          kvstore:
+            store: inmemory
+
+      schema_config:
+        configs:
+          - from: 2022-07-01
+            store: boltdb-shipper
+            object_store: filesystem
+            schema: v11
+            index:
+              prefix: index_
+              period: 24h
+
+      ruler:
+        alertmanager_url: http://${prometheus_hostname}:9093
+
+      analytics:
+        reporting_enabled: false
+
+  - owner: root:root
+    path: /etc/systemd/system/loki.service
+    permissions: '0644'
+    content: |
+      [Unit]
+      Description=Loki Log Management
+      After=docker.service
+      Requires=docker.service
+
+      [Service]
+      Restart=always
+      ExecStart=/usr/bin/docker run --rm \
+          -v /etc/loki:/etc/loki \
+          -v /var/lib/loki:/var/lib/loki \
+          -p 3100:3100 \
+          --name %N \
+          grafana/loki:${loki_version} \
+            -config.file=/etc/loki/config.yaml
+
+      [Install]
+      WantedBy=multi-user.target
+
+runcmd:
+  # Create Loki directories
+  - mkdir -p /var/lib/loki/wal /var/lib/loki/tmp
+  - chmod -R 777 /var/lib/loki
+
+  # Launch service
+  - systemctl daemon-reload
+  - systemctl enable loki
+  - systemctl start loki
