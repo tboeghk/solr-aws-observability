@@ -7,6 +7,13 @@ merge_how:
 
 write_files:
   - owner: root:root
+    path: /etc/grafana/grafana.ini
+    permissions: '0644'
+    content: |
+      [feature_toggles]
+      enable = tempoSearch tempoBackendSearch
+
+  - owner: root:root
     path: /etc/grafana/provisioning/datasources/datasources.yaml
     permissions: '0644'
     content: |
@@ -39,7 +46,7 @@ write_files:
       Restart=always
       ExecStart=/usr/bin/docker run --rm \
           -p 3000:3000 \
-          -v /etc/grafana/provisioning:/etc/grafana/provisioning \
+          -v /etc/grafana:/etc/grafana \
           -e GF_AUTH_ANONYMOUS_ENABLED=true \
           -e GF_AUTH_ANONYMOUS_ORG_ROLE=Admin \
           -e GF_AUTH_DISABLE_LOGIN_FORM=true \

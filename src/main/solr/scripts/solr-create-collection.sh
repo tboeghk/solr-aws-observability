@@ -2,7 +2,7 @@
 set -xe
 
 # retrieve first Solr node
-SOLR_URL=http://localhost:8983
+SOLR_URL=http://ec2-34-252-224-0.eu-west-1.compute.amazonaws.com:8983
 SOLR_INSTANCE_COUNT=1
 
 # create blobstore collection
@@ -16,4 +16,4 @@ curl -X POST -H 'Content-type:application/json' --data-binary '{"add-field": {"n
 curl -X POST -H 'Content-type:application/json' --data-binary '{"add-copy-field" : {"source":"*","dest":"_text_"}}' "${SOLR_URL}/solr/films/schema"
 
 # index data
-docker run -it --network host solr:8.11.1-slim bash bin/post -url "${SOLR_URL}/solr/films/update" example/films/films.json
+docker run -it --network host solr:8.11.2-slim bash bin/post -url "${SOLR_URL}/solr/films/update" example/films/films.json

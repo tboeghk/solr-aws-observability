@@ -13,7 +13,9 @@ write_files:
       metrics_generator_enabled: true
       server:
         http_listen_port: 3200
+      search_enabled: true
       distributor:
+        log_received_traces: true
         receivers:
           jaeger:
             protocols:
@@ -84,6 +86,7 @@ write_files:
           -p 4317:4317 \
           -p 4318:4318 \
           -p 9411:9411 \
+          -p 9095:9095 \
           --name %N \
           grafana/tempo:${tempo_version} \
             -config.file=/etc/tempo/config.yaml
@@ -93,7 +96,7 @@ write_files:
 
 runcmd:
   # Create Loki directories
-  - mkdir -p /var/lib/tempo/wal /var/lib/tempo/blocks /var/lib/tempo/generator/wal
+  - mkdir -p /var/lib/tempo/wal /var/lib/tempo/blocks /var/lib/tempo/generator/wal /var/lib/tempo/wal/search
   - chmod -R 777 /var/lib/tempo
 
   # Launch service

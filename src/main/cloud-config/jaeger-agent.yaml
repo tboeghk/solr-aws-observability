@@ -26,8 +26,8 @@ write_files:
           -p 6831:6831/udp \
           -p 6832:6832/udp \
           -p 5778:5778 \
-          jaegertracing/jaeger-agent:1.32 \
-          --reporter.grpc.host-port=${JAEGER_HOST}:14250
+          jaegertracing/jaeger-agent:1.35.2 \
+          --reporter.grpc.host-port=${JAEGER_HOST}:9095
 
       [Install]
       WantedBy=multi-user.target
@@ -37,7 +37,7 @@ write_files:
     content: |
       #!/bin/bash
       JAEGER_HOST=$(aws ec2 describe-instances --region eu-west-1 \
-        --filters Name=instance-state-name,Values=running Name=tag-value,Values=prometheus \
+        --filters Name=instance-state-name,Values=running Name=tag-value,Values=tempo \
         --query "Reservations[].Instances[].PrivateIpAddress" | jq -r '.[]')
 
       # write env

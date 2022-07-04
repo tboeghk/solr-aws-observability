@@ -23,7 +23,7 @@ variable "solr" {
   })
   default = {
     instance_type = "t4g.medium"
-    version       = "8.11.1-slim"
+    version       = "8.11.2-slim"
     count         = 2
   }
 }
